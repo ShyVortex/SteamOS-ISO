@@ -19,7 +19,7 @@ jobs:
       - name: Install host deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y docker.io bzip2 curl
+          sudo apt-get install -y bzip2 curl
 
       # 1) Download & decompress the raw image
       - name: Fetch SteamOS recovery image
