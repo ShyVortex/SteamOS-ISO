@@ -73,6 +73,10 @@ jobs:
           git tag -a "$tag" -m "SteamOS $tag"
           git push origin "$tag"
 
+      - name: List files
+        if: steps.check.outputs.exists == 'false'
+        run: ls -l .
+
       - name: Create and upload GitHub Release
         if: steps.check.outputs.exists == 'false'
         uses: softprops/action-gh-release@v1
