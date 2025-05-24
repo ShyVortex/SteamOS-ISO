@@ -36,7 +36,7 @@ jobs:
           --privileged \
           -v "${{ github.workspace }}:/work" \
           archlinux:latest \
-          /work/scripts/inject_ventoy_hook.sh
+          /work/scripts/ventoy_hook.sh
 
       # 3) Split into <2GiB chunks
       - name: Split for GitHub release
@@ -51,7 +51,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.version.outputs.version }}
-          name: SteamOS v${{ steps.version.outputs.version }}
+          name: SteamOS ${{ steps.version.outputs.version }}
           # glob will catch part-001, part-002, …
           files: steamos-recovery.img.part-*
         env:
