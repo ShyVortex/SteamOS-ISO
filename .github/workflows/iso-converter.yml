@@ -55,33 +55,24 @@ jobs:
         if: steps.check.outputs.exists == 'true'
         run: echo "Release v${{ steps.version.outputs.version }} already exists."
 
-      - name: Download & convert image
-        if: steps.check.outputs.exists == 'false'
+      - name: Download & decompress
         run: |
-          url="${{ steps.url.outputs.latest_url }}"
           curl -sSL "$url" -o steamos-recovery.img.bz2
           bunzip2 -k steamos-recovery.img.bz2
-          cp steamos-recovery.img steamos-recovery.iso
+          mv steamos-recovery.img recovery.img
 
-      - name: Tag new release (annotated)
-        if: steps.check.outputs.exists == 'false'
+      - name: Split into 1.9 GiB chunks
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          tag=v${{ steps.version.outputs.version }}
-          git tag -a "$tag" -m "SteamOS $tag"
-          git push origin "$tag"
+          split -b 1900M recovery.img steamos-recovery.img.part-
 
-      - name: List files
-        if: steps.check.outputs.exists == 'false'
-        run: ls -l .
+      - name: List parts
+        run: ls -lh steamos-recovery.img.part-*
 
       - name: Create and upload GitHub Release
-        if: steps.check.outputs.exists == 'false'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: SteamOS ${{ steps.version.outputs.version }}
-          files: steamos-recovery.*
+          files: steamos-recovery.img.part-*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
