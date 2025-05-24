@@ -22,12 +22,11 @@ jobs:
           sudo apt-get install -y bzip2 curl
 
       # 1) Download & decompress the raw image
-      - name: Fetch SteamOS recovery image
+      - name: Download & decompress
         run: |
           curl -sSL https://steamdeck-images.steamos.cloud/recovery/steamdeck-repair-latest.img.bz2 \
             -o steamos-recovery.img.bz2
           bunzip2 steamos-recovery.img.bz2
-          mv steamos-recovery.img recovery.img
 
       - name: Ensure ventoy_hook.sh is executable
         run: chmod +x scripts/ventoy_hook.sh
