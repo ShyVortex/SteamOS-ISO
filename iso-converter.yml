@@ -1,0 +1,68 @@
+name: Convert SteamOS Recovery Image
+
+on:
+  schedule:
+    - cron: '0 2 * * *'     # daily at 02:00 UTC
+  workflow_dispatch: {}     # manual trigger
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Check latest image checksum
+        id: checksum
+        run: |
+          url="https://steamdeck-images.steamos.cloud/recovery/steamdeck-repair-latest.img.bz2"
+          curl -sSL "$url" | tee download.img.bz2 \
+            | sha256sum | cut -d' ' -f1 > sha256.txt
+          echo "sha=$(<sha256.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Check if release exists
+        id: check
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const sha = "${{ steps.checksum.outputs.sha }}";
+            try {
+              await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: sha
+              });
+              core.setOutput('exists', 'true');
+            } catch (e) {
+              core.setOutput('exists', 'false');
+            }
+
+      - name: Skip if already released
+        if: steps.check.outputs.exists == 'true'
+        run: |
+          echo "Release for ${{ steps.checksum.outputs.sha }} already exists. Exiting.";
+
+      - name: Download & convert image
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          # decompress
+          bunzip2 -k download.img.bz2
+          mv download.img download.raw
+          # convert to ISO
+          xorriso -indev download.raw -outdev steamdeck-recovery.iso
+
+      - name: Create GitHub Release
+        if: steps.check.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.checksum.outputs.sha }}
+          name: Steam Deck Recovery ${{ steps.checksum.outputs.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload ISO asset
+        if: steps.check.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: steamdeck-recovery.iso
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
