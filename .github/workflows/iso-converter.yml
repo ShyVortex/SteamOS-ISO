@@ -38,7 +38,7 @@ jobs:
           archlinux:latest \
           /bin/bash -lc " \
             pacman -Sy --noconfirm multipath-tools mkinitcpio arch-install-scripts && \
-            /work/scripts/inject_ventoy_hook.sh \
+            /work/scripts/ventoy_hook.sh \
           "
 
       # 3) Split into <2GiB chunks
