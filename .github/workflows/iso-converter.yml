@@ -36,7 +36,10 @@ jobs:
           --privileged \
           -v "${{ github.workspace }}:/work" \
           archlinux:latest \
-          /bin/bash -lc "pacman -Sy --noconfirm kpartx && /work/scripts/inject_ventoy_hook.sh"
+          /bin/bash -lc " \
+            pacman -Sy --noconfirm multipath-tools mkinitcpio arch-install-scripts && \
+            /work/scripts/inject_ventoy_hook.sh \
+          "
 
       # 3) Split into <2GiB chunks
       - name: Split for GitHub release
