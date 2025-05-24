@@ -1,0 +1,15 @@
+run_hook() {
+    case $steamimg in
+    *@*)
+        imgpart=${steamimg%%@*}
+        imgpath=${steamimg#*@}
+
+        poll_device "$imgpart"
+        mkdir /imgpart_root
+        mount "$imgpart" /imgpart_root
+        if ! losetup -Pf /imgpart_root"$imgpath"; then
+             err "Unable to set up steam deck recovery image /imgpart_root$imgpath"
+        fi
+        ;;
+    esac
+}

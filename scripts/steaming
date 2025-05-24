@@ -1,0 +1,17 @@
+#!/bin/bash
+
+build() {
+    add_module loop
+    add_runscript
+}
+
+help() {
+    cat <<HELPEOF
+Support for mounting the steam
+deck recovery image from Ventoy.
+
+Syntax: steamimg=<imagepart>@<imagepath>
+HELPEOF
+}
+
+# vim: set ft=sh ts=4 sw=4 et:
