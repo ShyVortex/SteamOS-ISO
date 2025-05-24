@@ -64,7 +64,12 @@ jobs:
 
       - name: Split into 1.9 GiB chunks
         run: |
-          split -b 1900M recovery.img steamos-recovery.img.part-
+          split \
+          --numeric-suffixes=1 \
+          --suffix-length=3 \
+          --bytes=1900M \
+          recovery.img \
+          steamos-recovery.img.part-
 
       - name: List parts
         run: ls -lh steamos-recovery.img.part-*
