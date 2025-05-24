@@ -7,9 +7,25 @@ ROOT=/work/mnt-root
 # 1) Map partitions
 kpartx -av "$IMG"
 
-# 2) Mount the root fs
-mkdir -p "$ROOT"
-mount /dev/mapper/loop0p2 "$ROOT"
+# 2) Find and mount the recovery root filesystem partition
+TMPDIR=/work/tmp-mnt
+mkdir -p "$TMPDIR"
+ROOT=""
+for part in /dev/mapper/loop?p*; do
+  if mount "$part" "$TMPDIR" 2>/dev/null; then
+    if [ -d "$TMPDIR/etc/initcpio" ]; then
+      ROOT="$TMPDIR"
+      break
+    else
+      umount "$TMPDIR"
+    fi
+  fi
+done
+
+if [ -z "$ROOT" ]; then
+  echo "Error: could not find root filesystem partition containing /etc/initcpio"
+  exit 1
+fi
 
 # 3) Install mkinitcpio hooks
 mkdir -p "$ROOT/etc/initcpio/{install,hooks}"
