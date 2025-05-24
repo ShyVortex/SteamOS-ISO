@@ -3,7 +3,7 @@ name: Create Ventoy-patched Recovery IMG
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 3 * * *'
+    - cron: '0 2 * * *'
 
 permissions:
   contents: write
@@ -28,6 +28,9 @@ jobs:
             -o steamos-recovery.img.bz2
           bunzip2 steamos-recovery.img.bz2
           mv steamos-recovery.img recovery.img
+
+      - name: Ensure ventoy_hook.sh is executable
+        run: chmod +x scripts/ventoy_hook.sh
 
       # 2) Run Arch container to inject the steamimg hook and rebuild initramfs
       - name: Inject Ventoy hook & rebuild initramfs
