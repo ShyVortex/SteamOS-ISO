@@ -2,41 +2,58 @@
 set -euo pipefail
 
 IMG="/work/steamos-recovery.img"
-TMPDIR="/work/tmp"
-MODROOT="/work/rootfs"
+MOUNTDIR="/work/rootfs"
+MODROOT="/work/tmp-mnt"
 
-mkdir -p "$TMPDIR" "$MODROOT"
+echo "==> Setting up loop device..."
+LOOPDEV=$(losetup --show -Pf "$IMG")
+PARTROOT="${LOOPDEV}p3"
 
-# Setup loop device and map partitions
-LOOPDEV=$(losetup --find --show "$IMG")
+echo "==> Creating mount points..."
+mkdir -p "$MOUNTDIR" "$MODROOT"
+
+echo "==> Mapping partitions..."
 kpartx -av "$LOOPDEV"
 
-sleep 2  # let device settle
+echo "==> Mounting root filesystem..."
+mount "$PARTROOT" "$MOUNTDIR"
 
-# Find partition with /etc/initcpio
-for part in /dev/mapper/$(basename "$LOOPDEV")p*; do
-  mount "$part" "$TMPDIR" || continue
-  if [ -d "$TMPDIR/etc/initcpio" ]; then
-    echo "Found rootfs on $part"
-    cp -a "$TMPDIR/." "$MODROOT"
-    umount "$TMPDIR"
-    break
-  fi
-  umount "$TMPDIR"
-done
+echo "==> Copying root filesystem for modification..."
+rsync -aHAX "$MOUNTDIR/" "$MODROOT/"
 
-if [ ! -d "$MODROOT/etc/initcpio" ]; then
-  echo "Error: Could not locate Arch rootfs with /etc/initcpio"
+echo "==> Injecting Ventoy compatibility hook..."
+mkdir -p "$MODROOT/etc/initcpio/install"
+mkdir -p "$MODROOT/etc/initcpio/hooks"
+
+cp /work/scripts/steamimg "$MODROOT/etc/initcpio/install/"
+cp /work/scripts/steamimg.hook "$MODROOT/etc/initcpio/hooks/"
+chmod +x "$MODROOT/etc/initcpio/install/steamimg"
+
+echo "==> Patching mkinitcpio.conf HOOKS..."
+sed -i 's/^HOOKS=.*/HOOKS=(base udev autodetect modconf block steamimg filesystems keyboard fsck)/' "$MODROOT/etc/mkinitcpio.conf"
+
+echo "==> Binding /dev, /sys, /proc for chroot..."
+mount --bind /dev  "$MODROOT/dev"
+mount --bind /sys  "$MODROOT/sys"
+mount --bind /proc "$MODROOT/proc"
+
+echo "==> Detecting available initramfs presets..."
+PRESETS=( "$MODROOT/etc/initcpio.d/"*.preset )
+if [ ${#PRESETS[@]} -eq 0 ]; then
+  echo "❌ No mkinitcpio presets found; cannot rebuild initramfs."
   exit 1
 fi
 
-# Inject hook
-mkdir -p "$MODROOT/etc/initcpio/{install,hooks}"
-cp /work/scripts/steamimg "$MODROOT/etc/initcpio/install/"
-cp /work/scripts/steamimg.hook "$MODROOT/etc/initcpio/hooks/"
+for preset_path in "${PRESETS[@]}"; do
+  preset_name=$(basename "$preset_path" .preset)
+  echo "→ Rebuilding initramfs for preset '$preset_name'"
+  arch-chroot "$MODROOT" mkinitcpio -p "$preset_name"
+done
 
-arch-chroot "$MODROOT" mkinitcpio -p linux
-
-# Cleanup
-kpartx -dv "$LOOPDEV"
+echo "==> Cleaning up..."
+umount "$MODROOT/dev"
+umount "$MODROOT/sys"
+umount "$MODROOT/proc"
+umount "$MOUNTDIR"
+kpartx -d "$LOOPDEV"
 losetup -d "$LOOPDEV"
