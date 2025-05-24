@@ -57,6 +57,7 @@ jobs:
 
       - name: Download & decompress
         run: |
+          url="${{ steps.url.outputs.latest_url }}"
           curl -sSL "$url" -o steamos-recovery.img.bz2
           bunzip2 -k steamos-recovery.img.bz2
           mv steamos-recovery.img recovery.img
