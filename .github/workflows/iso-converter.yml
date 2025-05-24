@@ -1,84 +1,58 @@
-name: Convert SteamOS Recovery Image
+name: Create Ventoy-patched Recovery IMG
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * *'
 
 permissions:
   contents: write
 
-on:
-  schedule:
-    - cron: '0 2 * * *'   # daily at 02:00 UTC
-  workflow_dispatch: {}
-
 jobs:
-  build-and-release:
+  release:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
 
-      - name: Install dependencies
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install host deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y xorriso bzip2 curl git
+          sudo apt-get install -y docker.io bzip2 curl
 
-      - name: Check latest image URL
-        id: url
+      # 1) Download & decompress the raw image
+      - name: Fetch SteamOS recovery image
         run: |
-          latest_url=$(curl -sSLI -o /dev/null -w '%{url_effective}' \
-            https://steamdeck-images.steamos.cloud/recovery/steamdeck-repair-latest.img.bz2)
-          echo "latest_url=$latest_url" >> "$GITHUB_OUTPUT"
-
-      - name: Extract version
-        id: version
-        run: |
-          filename=$(basename "${{ steps.url.outputs.latest_url }}")
-          version=$(echo "$filename" \
-            | sed -E 's/.*-([0-9]+\.[0-9]+\.[0-9]+)\.img\.bz2$/\1/')
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-
-      - name: Check if release exists
-        id: check
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const tag = `v${{ steps.version.outputs.version }}`;
-            try {
-              await github.rest.repos.getReleaseByTag({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                tag
-              });
-              core.setOutput('exists', 'true');
-            } catch {
-              core.setOutput('exists', 'false');
-            }
-
-      - name: Skip if already released
-        if: steps.check.outputs.exists == 'true'
-        run: echo "Release v${{ steps.version.outputs.version }} already exists."
-
-      - name: Download & decompress
-        run: |
-          url="${{ steps.url.outputs.latest_url }}"
-          curl -sSL "$url" -o steamos-recovery.img.bz2
-          bunzip2 -k steamos-recovery.img.bz2
+          curl -sSL https://steamdeck-images.steamos.cloud/recovery/steamdeck-repair-latest.img.bz2 \
+            -o steamos-recovery.img.bz2
+          bunzip2 steamos-recovery.img.bz2
           mv steamos-recovery.img recovery.img
 
-      - name: Split into 1.9 GiB chunks
+      # 2) Run Arch container to inject the steamimg hook and rebuild initramfs
+      - name: Inject Ventoy hook & rebuild initramfs
         run: |
-          split \
-          --numeric-suffixes=1 \
-          --suffix-length=3 \
-          --bytes=1900M \
-          recovery.img \
-          steamos-recovery.img.part-
+          docker run --rm \
+          --privileged \
+          -v "${{ github.workspace }}:/work" \
+          archlinux:latest \
+          /work/scripts/inject_ventoy_hook.sh
 
-      - name: List parts
-        run: ls -lh steamos-recovery.img.part-*
+      # 3) Split into <2GiB chunks
+      - name: Split for GitHub release
+        run: |
+          # chunk size 1900M, 3-digit numeric suffixes
+          split --numeric-suffixes=1 --suffix-length=3 --bytes=1900M \
+            recovery.img steamos-recovery.img.part-
+          ls -lh steamos-recovery.img.part-*
 
-      - name: Create and upload GitHub Release
+      # 4) Publish all parts as release assets
+      - name: Create & upload GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.version.outputs.version }}
-          name: SteamOS ${{ steps.version.outputs.version }}
+          name: SteamOS v${{ steps.version.outputs.version }}
+          # glob will catch part-001, part-002, …
           files: steamos-recovery.img.part-*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
