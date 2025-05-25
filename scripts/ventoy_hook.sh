@@ -26,6 +26,7 @@ rsync -a --no-xattrs "$MOUNTDIR/" "$MODROOT/"
 
 echo "==> Removing SteamOS mkinitcpio drop-ins…"
 rm -f "$MODROOT/etc/initcpio.d"/20-steamdeck.conf
+rm -f "$MODROOT/etc/initcpio/conf.d/20-steamdeck.conf"
 
 echo "==> Ensuring /bin/bash exists (relative symlink)…"
 mkdir -p "$MODROOT/bin"
@@ -40,9 +41,11 @@ cp /work/scripts/steamimg.hook "$MODROOT/etc/initcpio/hooks/steamimg"
 chmod +x "$MODROOT/etc/initcpio/install/steamimg" \
          "$MODROOT/etc/initcpio/hooks/steamimg"
 
-echo "==> Overriding HOOKS in mkinitcpio.conf…"
-sed -i 's/^HOOKS=.*/HOOKS=(base udev autodetect modconf block steamimg filesystems keyboard fsck)/' \
-    "$MODROOT/etc/mkinitcpio.conf"
+echo "==> Overriding HOOKS (stripping plymouth)…"
+# Remove any leftover plymouth entries
+sed -i 's/\<plymouth\>//g' "$MODROOT/etc/mkinitcpio.conf"
+# Now set exactly the hooks we want
+sed -i 's/^HOOKS=.*/HOOKS=(base udev autodetect modconf block steamimg filesystems keyboard fsck)/' "$MODROOT/etc/mkinitcpio.conf"
 
 echo "==> Bind host /usr/bin/env and /usr/bin/bash into chroot…"
 # ensure any /usr/bin/env bash shebangs will work
