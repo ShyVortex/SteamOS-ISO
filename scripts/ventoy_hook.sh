@@ -18,10 +18,7 @@ PARTROOT="/dev/mapper/${BASENAME}p3"     # e.g. "/dev/mapper/loop0p3"
 echo "==> Creating mount points..."
 mkdir -p "$MOUNTDIR" "$MODROOT"
 
-echo "==> Mapping partitions..."
-kpartx -av "$LOOPDEV"
-
-echo "==> Mounting root filesystem..."
+echo "==> Mounting root filesystem from $PARTROOT..."
 mount "$PARTROOT" "$MOUNTDIR"
 
 echo "==> Copying root filesystem for modification..."
