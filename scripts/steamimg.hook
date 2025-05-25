@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 run_hook() {
     case $steamimg in

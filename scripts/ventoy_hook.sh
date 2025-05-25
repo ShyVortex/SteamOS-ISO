@@ -44,6 +44,12 @@ echo "==> Overriding HOOKS in mkinitcpio.conf…"
 sed -i 's/^HOOKS=.*/HOOKS=(base udev autodetect modconf block steamimg filesystems keyboard fsck)/' \
     "$MODROOT/etc/mkinitcpio.conf"
 
+echo "==> Bind host /usr/bin/env and /usr/bin/bash into chroot…"
+# ensure any /usr/bin/env bash shebangs will work
+mkdir -p "$MODROOT/usr/bin"
+mount --bind /usr/bin/env  "$MODROOT/usr/bin/env"
+mount --bind /usr/bin/bash "$MODROOT/usr/bin/bash"
+
 echo "==> Binding /dev, /sys, /proc for chroot…"
 mount --bind /dev  "$MODROOT/dev"
 mount --bind /sys  "$MODROOT/sys"
@@ -65,6 +71,10 @@ for preset_path in "${PRESETS[@]}"; do
   echo "→ Rebuilding initramfs for preset '$preset_name'…"
   arch-chroot "$MODROOT" mkinitcpio -p "$preset_name"
 done
+
+echo "==> Un-binding host binaries…"
+umount "$MODROOT/usr/bin/env"
+umount "$MODROOT/usr/bin/bash"
 
 echo "==> Cleaning up…"
 umount "$MODROOT"/{dev,sys,proc}
