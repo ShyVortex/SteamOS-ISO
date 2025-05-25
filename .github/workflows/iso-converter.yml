@@ -48,7 +48,7 @@ jobs:
         run: |
           # chunk size 1900M, 3-digit numeric suffixes
           split --numeric-suffixes=1 --suffix-length=3 --bytes=1900M \
-            recovery.img steamos-recovery.img.part-
+            steamos-recovery.img steamos-recovery.img.part-
           ls -lh steamos-recovery.img.part-*
 
       # 4) Publish all parts as release assets
