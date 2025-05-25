@@ -41,11 +41,16 @@ cp /work/scripts/steamimg.hook "$MODROOT/etc/initcpio/hooks/steamimg"
 chmod +x "$MODROOT/etc/initcpio/install/steamimg" \
          "$MODROOT/etc/initcpio/hooks/steamimg"
 
-echo "==> Overriding HOOKS (stripping plymouth)…"
-# Remove any leftover plymouth entries
+echo "==> Stripping any remaining SteamDeck drop-ins…"
+rm -f "$MODROOT"/etc/initcpio.{d,conf.d}/20-steamdeck.conf \
+    "$MODROOT"/usr/{lib,etc}/initcpio.{d,conf.d}/20-steamdeck.conf || true
+
+echo "==> Overriding HOOKS to omit plymouth…"
 sed -i 's/\<plymouth\>//g' "$MODROOT/etc/mkinitcpio.conf"
-# Now set exactly the hooks we want
 sed -i 's/^HOOKS=.*/HOOKS=(base udev autodetect modconf block steamimg filesystems keyboard fsck)/' "$MODROOT/etc/mkinitcpio.conf"
+
+echo "==> (Optionally) Installing plymouth so the hook won’t error…"
+arch-chroot "$MODROOT" pacman -Sy --noconfirm plymouth
 
 echo "==> Bind host /usr/bin/env and /usr/bin/bash into chroot…"
 # ensure any /usr/bin/env bash shebangs will work
