@@ -74,10 +74,11 @@ if [ ${#PRESETS[@]} -eq 0 ]; then
   exit 1
 fi
 
-for preset_path in "${PRESETS[@]}"; do
+for preset_path in "$MODROOT/etc/mkinitcpio.d/"*.preset; do
   preset_name=$(basename "$preset_path" .preset)
-  echo "→ Rebuilding initramfs for preset '$preset_name'…"
-  arch-chroot "$MODROOT" mkinitcpio -p "$preset_name"
+  echo "→ Rebuilding initramfs for '$preset_name' (warnings OK)…"
+  arch-chroot "$MODROOT" mkinitcpio -p "$preset_name" || \
+    echo "⚠️ mkinitcpio -p $preset_name exited with $?, continuing anyway"
 done
 
 echo "==> Un-binding host binaries…"
