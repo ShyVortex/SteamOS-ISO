@@ -22,7 +22,7 @@ echo "==> Mounting root filesystem from $PARTROOT..."
 mount "$PARTROOT" "$MOUNTDIR"
 
 echo "==> Copying root filesystem for modification..."
-rsync -aHAX "$MOUNTDIR/" "$MODROOT/"
+rsync -a --no-xattrs "$MOUNTDIR/" "$MODROOT/"
 
 echo "==> Injecting Ventoy compatibility hook..."
 mkdir -p "$MODROOT/etc/initcpio/install"
