@@ -1,3 +1,5 @@
+#!/bin/bash
+
 run_hook() {
     case $steamimg in
     *@*)
