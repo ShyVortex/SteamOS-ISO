@@ -39,7 +39,7 @@ jobs:
           -v "${{ github.workspace }}:/work" \
           archlinux:latest \
           /bin/bash -lc " \
-            pacman -Sy --noconfirm multipath-tools mkinitcpio arch-install-scripts && \
+            pacman -Sy --noconfirm multipath-tools mkinitcpio arch-install-scripts rsync && \
             /work/scripts/ventoy_hook.sh \
           "
 
