@@ -7,7 +7,13 @@ MODROOT="/work/tmp-mnt"
 
 echo "==> Setting up loop device..."
 LOOPDEV=$(losetup --show -Pf "$IMG")
-PARTROOT="${LOOPDEV}p3"
+
+echo "==> Mapping partitions via kpartx..."
+kpartx -av "$LOOPDEV"
+
+# derive the mapper path for the root fs (usually the 3rd partition)
+BASENAME=$(basename "$LOOPDEV")          # e.g. "loop0"
+PARTROOT="/dev/mapper/${BASENAME}p3"     # e.g. "/dev/mapper/loop0p3"
 
 echo "==> Creating mount points..."
 mkdir -p "$MOUNTDIR" "$MODROOT"
