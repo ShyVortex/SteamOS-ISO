@@ -11,9 +11,9 @@ LOOPDEV=$(losetup --show -Pf "$IMG")
 echo "==> Mapping partitions via kpartx..."
 kpartx -av "$LOOPDEV"
 
-# Derive the mapper path for the root fs (here partition 3)
-BASENAME=$(basename "$LOOPDEV")
-PARTROOT="/dev/mapper/${BASENAME}p3"
+# Derive the mapper path for the root fs (usually partition 3)
+BASENAME=$(basename "$LOOPDEV")          # e.g. "loop0"
+PARTROOT="/dev/mapper/${BASENAME}p3"     # e.g. "/dev/mapper/loop0p3"
 
 echo "==> Creating mount points..."
 mkdir -p "$MOUNTDIR" "$MODROOT"
@@ -27,9 +27,11 @@ rsync -a --no-xattrs "$MOUNTDIR/" "$MODROOT/"
 echo "==> Removing SteamOS mkinitcpio drop-ins…"
 rm -f "$MODROOT/etc/initcpio.d"/20-steamdeck.conf
 
-echo "==> Ensuring /bin/bash exists…"
+echo "==> Ensuring /bin/bash exists (relative symlink)…"
 mkdir -p "$MODROOT/bin"
-ln -sf /usr/bin/bash "$MODROOT/bin/bash"
+
+# Create a relative link from bin/bash → ../usr/bin/bash
+ln -sf ../usr/bin/bash "$MODROOT/bin/bash"
 
 echo "==> Injecting Ventoy compatibility hook…"
 mkdir -p "$MODROOT/etc/initcpio/install" "$MODROOT/etc/initcpio/hooks"
@@ -39,7 +41,6 @@ chmod +x "$MODROOT/etc/initcpio/install/steamimg" \
          "$MODROOT/etc/initcpio/hooks/steamimg"
 
 echo "==> Overriding HOOKS in mkinitcpio.conf…"
-# Replace entire HOOKS line so no unwanted hooks slip in
 sed -i 's/^HOOKS=.*/HOOKS=(base udev autodetect modconf block steamimg filesystems keyboard fsck)/' \
     "$MODROOT/etc/mkinitcpio.conf"
 
