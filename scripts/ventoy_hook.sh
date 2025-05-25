@@ -49,9 +49,6 @@ echo "==> Overriding HOOKS to omit plymouth…"
 sed -i 's/\<plymouth\>//g' "$MODROOT/etc/mkinitcpio.conf"
 sed -i 's/^HOOKS=.*/HOOKS=(base udev autodetect modconf block steamimg filesystems keyboard fsck)/' "$MODROOT/etc/mkinitcpio.conf"
 
-echo "==> (Optionally) Installing plymouth so the hook won’t error…"
-arch-chroot "$MODROOT" pacman -Sy --noconfirm plymouth
-
 echo "==> Bind host /usr/bin/env and /usr/bin/bash into chroot…"
 # ensure any /usr/bin/env bash shebangs will work
 mkdir -p "$MODROOT/usr/bin"
