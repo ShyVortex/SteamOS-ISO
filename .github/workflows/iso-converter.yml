@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   release:
@@ -48,12 +49,13 @@ jobs:
               core.setOutput('exists', 'false');
             }
 
-      - name: Exit early if already released  
+      - name: Exit early if already released
         if: steps.check.outputs.exists == 'true'
-        uses: peter-evans/exit-action@v2  
-        with:
-          exit_status: success
-          comment: "Release v${{ steps.version.outputs.version }} already exists, skipping."
+        run: |
+          gh run cancel ${{ github.run_id }}
+          gh run watch ${{ github.run_id }}
+        env:
+          GH_TOKEN: ${{ secrets. GITHUB_TOKEN }}
 
       - name: Download & decompress
         run: |
