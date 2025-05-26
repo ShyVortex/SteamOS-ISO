@@ -48,14 +48,12 @@ jobs:
               core.setOutput('exists', 'false');
             }
 
-      - name: Skip if already released
+      - name: Exit early if already released  
         if: steps.check.outputs.exists == 'true'
-        run: echo "Release v${{ steps.version.outputs.version }} already exists."
-
-      - name: Install host deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y bzip2 curl
+        uses: peter-evans/exit-action@v2  
+        with:
+          exit_status: success
+          comment: "Release v${{ steps.version.outputs.version }} already exists, skipping."
 
       - name: Download & decompress
         run: |
